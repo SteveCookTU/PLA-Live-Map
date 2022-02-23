@@ -25,6 +25,6 @@ jobs:
       with:
         name: pla_live_map_lib-${{ matrix.os }}
         path: |
-          pla_live_map_lib/target/release/pla_live_map_lib.*
-          pla_live_map_lib/target/release/pla_live_map_lib
-          !pla_live_map_lib/target/release/*.d
+          target/release/pla_live_map_lib.*
+          target/release/pla_live_map_lib
+          !target/release/*.d
