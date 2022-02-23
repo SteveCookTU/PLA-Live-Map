@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-2022, macos-latest]
+        os: [ubuntu-latest, windows-2022]
         include:
         - os: ubuntu-latest
           FILE: libpla_live_map_lib.so
@@ -24,9 +24,6 @@ jobs:
           FILE: pla_live_map_lib.dll
           OUT: pla_live_map_lib.pyd
           
-        - os: macos-latest
-          FILE: libpla_live_map_lib.dylib
-          OUT: pla_live_map_lib.so
     steps:
     - uses: actions/checkout@v2
     - name: Build Release
@@ -34,7 +31,9 @@ jobs:
         cd pla_live_map_lib
         cargo build --release
         cd ${{ github.workspace }}/pla_live_map_lib/target/release/
-        mv ${{ env.FILE }} ${{ env.OUT }}
+        echo ${{ matrix.FILE }}
+        echo ${{ matrix.OUT }}
+        mv "${{ matrix.FILE }}" "${{ matrix.OUT }}"
         
     - uses: actions/upload-artifact@v2
       with:
