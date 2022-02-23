@@ -27,4 +27,3 @@ jobs:
         name: pla_live_map_lib-${{ matrix.os }}
         path: |
           ${{ github.workspace }}/pla_live_map_lib/target/release/
-          !${{ github.workspace }}/pla_live_map_lib/target/release/**/*
