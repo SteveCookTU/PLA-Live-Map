@@ -27,4 +27,3 @@ jobs:
         path: |
           target/release/pla_live_map_lib.*
           target/release/pla_live_map_lib
-          !target/release/*.d
