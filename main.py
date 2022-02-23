@@ -2,6 +2,8 @@
    PLA onto a map"""
 import json
 import struct
+import sys
+import threading
 
 import requests
 from flask import Flask, render_template, request
@@ -9,7 +11,7 @@ import nxreader
 from pa8 import Pa8
 from xoroshiro import XOROSHIRO
 
-from pyfladesk import init_gui
+import webview
 
 from pla_live_map_lib import calc_from_seed, generate_from_seed, find_slots, \
     slot_to_pokemon, next_filtered, generate_passive_search_paths
@@ -135,8 +137,8 @@ def generate_mass_outbreak(main_rng, rolls, spawns, poke_filter):
         slot = (fixed_rng.next() / (2 ** 64) * 101)
         alpha = slot >= 100
         fixed_seed = fixed_rng.next()
-        encryption_constant,pid,ivs,ability,gender,nature,shiny = \
-            generate_from_seed(fixed_seed,rolls,3 if alpha else 0)
+        encryption_constant, pid, ivs, ability, gender, nature, shiny = \
+            generate_from_seed(fixed_seed, rolls, 3 if alpha else 0)
         display += f"<b>Init Spawn {init_spawn}</b> <b>Shiny: " \
                    f"<font color=\"{'green' if shiny else 'red'}\">{shiny}</font></b><br>" \
                    f"<b>Alpha: <font color=\"{'green' if alpha else 'red'}\">" \
@@ -159,8 +161,8 @@ def generate_mass_outbreak(main_rng, rolls, spawns, poke_filter):
         slot = (fixed_rng.next() / (2 ** 64) * 101)
         alpha = slot >= 100
         fixed_seed = fixed_rng.next()
-        encryption_constant,pid,ivs,ability,gender,nature,shiny = \
-            generate_from_seed(fixed_seed,rolls,3 if alpha else 0)
+        encryption_constant, pid, ivs, ability, gender, nature, shiny = \
+            generate_from_seed(fixed_seed, rolls, 3 if alpha else 0)
         display += f"<b>Respawn {respawn}</b> Shiny: " \
                    f"<b><font color=\"{'green' if shiny else 'red'}\">{shiny}</font></b><br>" \
                    f"<b>Alpha: <font color=\"{'green' if alpha else 'red'}\">" \
@@ -224,10 +226,10 @@ def generate_mass_outbreak_aggressive_path(group_seed, rolls, steps,
             slot = (fixed_rng.next() / (2 ** 64) * 101)
             alpha = slot >= 100
             fixed_seed = fixed_rng.next()
-            encryption_constant,pid,ivs,ability,gender,nature,shiny = \
-                generate_from_seed(fixed_seed,rolls,3 if alpha else 0)
+            encryption_constant, pid, ivs, ability, gender, nature, shiny = \
+                generate_from_seed(fixed_seed, rolls, 3 if alpha else 0)
             filtered = ((poke_filter['shinyFilterCheck'] and not shiny)
-                      or poke_filter['outbreakAlphaFilter'] and not alpha)
+                        or poke_filter['outbreakAlphaFilter'] and not alpha)
             if not filtered and not fixed_seed in uniques:
                 uniques.add(fixed_seed)
                 storage.append(
@@ -251,6 +253,7 @@ def get_final(spawns):
     if spawns % 4 != 0:
         path.append(spawns % 4)
     return path
+
 
 def aggressive_outbreak_pathfind(group_seed,
                                  rolls,
@@ -384,13 +387,17 @@ def read_mass_outbreak():
                                                                     'filter'])]
     elif request.json['passivePath']:
         info, paths_list = generate_passive_search_paths(group_seed,
-                              request.json['rolls'],
-                              request.json['spawns'],
-                              request.json['passiveMoveLimit'],
-                              request.json['filter']['shinyFilterCheck'],
-                              request.json['filter']['outbreakAlphaFilter'],
-                              not request.json['passiveFindFirst'])
-        display = ["",f"Group Seed: {group_seed:X}<br>"]
+                                                         request.json['rolls'],
+                                                         request.json['spawns'],
+                                                         request.json[
+                                                             'passiveMoveLimit'],
+                                                         request.json['filter'][
+                                                             'shinyFilterCheck'],
+                                                         request.json['filter'][
+                                                             'outbreakAlphaFilter'],
+                                                         not request.json[
+                                                             'passiveFindFirst'])
+        display = ["", f"Group Seed: {group_seed:X}<br>"]
         if len(info) == 0:
             display[1] += "<b>No paths found</b>"
         for seed, info in info.items():
@@ -620,5 +627,14 @@ def check_near():
     return json.dumps(near)
 
 
+def start_server():
+    app.run(host="0.0.0.0", port=80)
+
+
 if __name__ == '__main__':
-    init_gui(app, port=8080, window_title="PLA Live Map")
+    t = threading.Thread(target=start_server)
+    t.daemon = True
+    t.start()
+    webview.create_window('PLA Live Map', 'http://localhost/')
+    webview.start()
+    sys.exit()
