@@ -34,7 +34,7 @@ jobs:
         cd pla_live_map_lib
         cargo build --release
         cd ${{ github.workspace }}/pla_live_map_lib/target/release/
-        cp ${{ env.FILE }} ${{ env.OUT }}
+        mv ${{ env.FILE }} ${{ env.OUT }}
         
     - uses: actions/upload-artifact@v2
       with:
