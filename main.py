@@ -1,10 +1,8 @@
 """Flask application to display live memory information from
    PLA onto a map"""
 import json
-from math import factorial
 import struct
 
-import flask
 import requests
 from flask import Flask, render_template, request
 import nxreader
@@ -12,7 +10,7 @@ from pa8 import Pa8
 from xoroshiro import XOROSHIRO
 
 from pla_live_map_lib import calc_from_seed, generate_from_seed, find_slots, \
-    slot_to_pokemon, next_filtered
+    slot_to_pokemon, next_filtered, generate_passive_search_paths
 
 with open("./static/resources/text_natures.txt",
           encoding="utf-8") as text_natures:
@@ -135,8 +133,8 @@ def generate_mass_outbreak(main_rng, rolls, spawns, poke_filter):
         slot = (fixed_rng.next() / (2 ** 64) * 101)
         alpha = slot >= 100
         fixed_seed = fixed_rng.next()
-        encryption_constant, pid, ivs, ability, gender, nature, shiny = \
-            generate_from_seed(fixed_seed, rolls, 0)
+        encryption_constant,pid,ivs,ability,gender,nature,shiny = \
+            generate_from_seed(fixed_seed,rolls,3 if alpha else 0)
         display += f"<b>Init Spawn {init_spawn}</b> <b>Shiny: " \
                    f"<font color=\"{'green' if shiny else 'red'}\">{shiny}</font></b><br>" \
                    f"<b>Alpha: <font color=\"{'green' if alpha else 'red'}\">" \
@@ -159,8 +157,8 @@ def generate_mass_outbreak(main_rng, rolls, spawns, poke_filter):
         slot = (fixed_rng.next() / (2 ** 64) * 101)
         alpha = slot >= 100
         fixed_seed = fixed_rng.next()
-        encryption_constant, pid, ivs, ability, gender, nature, shiny = \
-            generate_from_seed(fixed_seed, rolls, 0)
+        encryption_constant,pid,ivs,ability,gender,nature,shiny = \
+            generate_from_seed(fixed_seed,rolls,3 if alpha else 0)
         display += f"<b>Respawn {respawn}</b> Shiny: " \
                    f"<b><font color=\"{'green' if shiny else 'red'}\">{shiny}</font></b><br>" \
                    f"<b>Alpha: <font color=\"{'green' if alpha else 'red'}\">" \
@@ -185,60 +183,6 @@ def next_filtered_mass_outbreak(main_rng, rolls, spawns, poke_filter):
         display, filtered_present = generate_mass_outbreak(main_rng, rolls,
                                                            spawns, poke_filter)
     return f"<b>Advance: {advance}</b><br>{display}"
-
-
-def generate_mass_outbreak_passive_path(group_seed,
-                                        rolls,
-                                        steps,
-                                        total_spawns,
-                                        poke_filter,
-                                        total_paths,
-                                        storage):
-    """Generate all the pokemon of an outbreak based on a provided passive
-    path """
-    # pylint: disable=too-many-locals, too-many-arguments
-    # the generation is unique to each path, no use in splitting this function
-    storage['current'] += 1
-    if storage['current'] & 0xF == 0 or storage['current'] == total_paths:
-        print(f"Passive search {storage['current']}/{total_paths}")
-    rng = XOROSHIRO(group_seed)
-    for step_i, step in enumerate(steps):
-        left = total_spawns - sum(steps[:step_i + 1])
-        final_in_init = (step_i == (len(steps) - 1)) and left + step <= 4
-        all_in_init = (step_i != (len(steps) - 1)) and left <= 4
-        down_to_init = final_in_init or all_in_init
-        if final_in_init:
-            add = 0
-        else:
-            add = min(4, left)
-        for pokemon in range(step + add):
-            spawner_seed = rng.next()
-            spawner_rng = XOROSHIRO(spawner_seed)
-            slot = spawner_rng.next() / (2 ** 64) * 101
-            alpha = slot >= 100
-            fixed_seed = spawner_rng.next()
-            encryption_constant, pid, ivs, ability, gender, nature, shiny = \
-                generate_from_seed(fixed_seed, rolls, 3 if alpha else 0)
-            filtered = ((poke_filter['shinyFilterCheck'] and not shiny)
-                        or poke_filter['outbreakAlphaFilter'] and not alpha)
-            effective_path = steps[:step_i] + [max(0, pokemon - 3)]
-            if not filtered:
-                if fixed_seed in storage["info"] \
-                        and effective_path not in storage["paths"][fixed_seed]:
-                    storage["paths"][fixed_seed].append(effective_path)
-                else:
-                    storage["paths"][fixed_seed] = [effective_path]
-                    storage["info"][fixed_seed] = \
-                        f"<b>Shiny: <font color=\"{'green' if shiny else 'red'}\">" \
-                        f"{shiny}</font></b><br>" \
-                        f"<b>Alpha: <font color=\"{'green' if alpha else 'red'}\">" \
-                        f"{alpha}</font></b><br>" \
-                        f"EC: {encryption_constant:08X} PID: {pid:08X}<br>" \
-                        f"Nature: {NATURES[nature]} Ability: {ability} Gender: {gender}<br>" \
-                        f"{'/'.join(str(iv) for iv in ivs)}"
-            rng.next()  # spawner 1 seed, unused
-            if not down_to_init and pokemon >= 3:
-                rng.reseed(rng.next())
 
 
 def generate_mass_outbreak_aggressive_path(group_seed, rolls, steps,
@@ -278,11 +222,10 @@ def generate_mass_outbreak_aggressive_path(group_seed, rolls, steps,
             slot = (fixed_rng.next() / (2 ** 64) * 101)
             alpha = slot >= 100
             fixed_seed = fixed_rng.next()
-            encryption_constant, pid, ivs, ability, gender, nature, shiny = \
-                generate_from_seed(fixed_seed, rolls, 0)
+            encryption_constant,pid,ivs,ability,gender,nature,shiny = \
+                generate_from_seed(fixed_seed,rolls,3 if alpha else 0)
             filtered = ((poke_filter['shinyFilterCheck'] and not shiny)
-                        or poke_filter[
-                            'outbreakAlphaFilter'] and not 100 <= slot < 101)
+                      or poke_filter['outbreakAlphaFilter'] and not alpha)
             if not filtered and not fixed_seed in uniques:
                 uniques.add(fixed_seed)
                 storage.append(
@@ -306,60 +249,6 @@ def get_final(spawns):
     if spawns % 4 != 0:
         path.append(spawns % 4)
     return path
-
-
-def passive_outbreak_pathfind(group_seed,
-                              rolls,
-                              spawns,
-                              move_limit,
-                              poke_filter,
-                              total_paths=None,
-                              spawns_left=None,
-                              step=None,
-                              steps=None,
-                              storage=None):
-    """Recursively pathfind to possible shinies for the current outbreak via
-    variable Jubilife visits """
-    # pylint: disable=too-many-arguments this could do with some
-    # optimization, there is a lot of overlap with passive paths
-    if spawns_left is None or steps is None or storage is None:
-        steps = []
-        storage = {"info": {}, "paths": {}, "current": 0}
-        spawns_left = spawns - 4
-        total_paths = round(factorial(spawns_left + move_limit)
-                            / (factorial(spawns_left) * factorial(move_limit)))
-        move_limit += 1
-    move_limit -= 1
-    _steps = steps.copy()
-    if step is not None:
-        spawns_left -= step
-        _steps.append(step)
-    if spawns_left <= 0 or move_limit == 0:
-        generate_mass_outbreak_passive_path(group_seed,
-                                            rolls,
-                                            _steps,
-                                            spawns,
-                                            poke_filter,
-                                            total_paths,
-                                            storage)
-        if _steps == [spawns - 4]:
-            return storage
-        return None
-    limit = spawns_left + 1
-    for _move in range(limit):
-        if passive_outbreak_pathfind(group_seed,
-                                     rolls,
-                                     spawns,
-                                     move_limit,
-                                     poke_filter,
-                                     total_paths,
-                                     spawns_left,
-                                     _move,
-                                     _steps,
-                                     storage) is not None:
-            return storage
-    return None
-
 
 def aggressive_outbreak_pathfind(group_seed,
                                  rolls,
@@ -492,12 +381,13 @@ def read_mass_outbreak():
                                                                 request.json[
                                                                     'filter'])]
     elif request.json['passivePath']:
-        full_info = passive_outbreak_pathfind(group_seed,
-                                              request.json['rolls'],
-                                              request.json['spawns'],
-                                              request.json['passiveMoveLimit'],
-                                              request.json['filter'])
-        display = ["", f"Group Seed: {group_seed:X}<br>"]
+        full_info = generate_passive_search_paths(group_seed,
+                              request.json['rolls'],
+                              request.json['spawns'],
+                              request.json['passiveMoveLimit'],
+                              request.json['filter'],
+                              not request.json['passiveFindFirst'])
+        display = ["",f"Group Seed: {group_seed:X}<br>"]
         if len(full_info["info"]) == 0:
             display[1] += "<b>No paths found</b>"
         for seed, info in full_info["info"].items():

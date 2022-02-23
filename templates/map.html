@@ -114,8 +114,10 @@
                 <label for="massOutbreakSpawns" id="massOutbreakSpawnsLabel">Total Spawns:</label>
                 <input type="number" id="massOutbreakSpawns" value=10><br>
                 <div id="passiveMoveLimitDiv">
-                    <label for="passiveMoveLimit" id="passiveMoveLimitLabel">Passive Move Limit:</label>
+                    <label for="passiveMoveLimit">Passive Move Limit:</label>
                     <input type="number" id="passiveMoveLimit" value=10><br>
+                    <label for="passiveFindFirst">Only Find First: </label>
+                    <input type="checkbox" id="passiveFindFirst"><br>
                 </div>
 
                 <button onclick=loadMassOutbreakInfo()>Update Mass Outbreak Info</button><br><br>
@@ -352,7 +354,7 @@
             document.getElementById("massOutbreakSpawns").style.display = null;
             document.getElementById("massOutbreakSpawnsLabel").style.display = null;
             if (!passivePath) {
-                    document.getElementById("passiveMoveLimitDiv").style.display = "none";
+                document.getElementById("passiveMoveLimitDiv").style.display = "none";
             }
             if (!noPath) {
                 document.getElementById("currentMassOutbreak").style.display = "none";
@@ -460,6 +462,7 @@
                 passivePath: document.getElementById("passivePath").checked,
                 spawns: document.getElementById("readSpawns").checked ? -1 : parseInt(document.getElementById("massOutbreakSpawns").value),
                 passiveMoveLimit: parseInt(document.getElementById("passiveMoveLimit").value),
+                passiveFindFirst: document.getElementById("passiveFindFirst").checked,
                 filter: getFilter()
             }));
         }
@@ -583,6 +586,72 @@
         function teleportPopup() {
             teleport(popupCoordinates);
         }
+
+        function saveIntToStorage(id, value) {
+            localStorage.setItem(id, value);
+        }
+        function readIntFromStorage(id, defaultValue) {
+            value = localStorage.getItem(id);
+            return value ? parseInt(value) : defaultValue;
+        }
+        function saveBoolToStorage(id, value) {
+            localStorage.setItem(id, value ? 1 : 0)
+        }
+        function readBoolFromStorage(id, defaultValue) {
+            value = localStorage.getItem(id);
+            return value ? (parseInt(value) == 1) : defaultValue;
+        }
+
+        function loadPreferences() {
+            let teleportHeight = readIntFromStorage("teleportHeight", 50);
+            let rolls = readIntFromStorage("rolls", 1);
+            let thresh = readIntFromStorage("thresh", 50);
+            let initSpawn = readBoolFromStorage("initSpawn", false);
+            let shinyFilterCheck = readBoolFromStorage("shinyFilterCheck", true);
+            let outbreakAlphaFilter = readBoolFromStorage("outbreakAlphaFilter", false);
+            let massOutbreakRolls = readIntFromStorage("massOutbreakRolls", 26);
+            let passiveMoveLimit = readIntFromStorage("passiveMoveLimit", 10);
+            let passiveFindFirst = readBoolFromStorage("passiveFindFirst", false);
+
+            document.getElementById("y").value = teleportHeight;
+            document.getElementById("rolls").value = rolls;
+            document.getElementById("thresh").value = thresh;
+            document.getElementById("initSpawn").checked = initSpawn;
+            document.getElementById("shinyFilterCheck").checked = shinyFilterCheck;
+            document.getElementById("outbreakAlphaFilter").checked = outbreakAlphaFilter;
+            document.getElementById("massOutbreakRolls").value = massOutbreakRolls;
+            document.getElementById("passiveMoveLimit").value = passiveMoveLimit;
+            document.getElementById("passiveFindFirst").checked = passiveFindFirst;
+        }
+        function savePreferences() {
+            document.getElementById("y").addEventListener("change", function(e) {
+                saveIntToStorage("teleportHeight", e.target.value);
+            });
+            document.getElementById("rolls").addEventListener("change", function(e) {
+                saveIntToStorage("rolls", e.target.value);
+            });
+            document.getElementById("thresh").addEventListener("change", function(e) {
+                saveIntToStorage("thresh", e.target.value);
+            });
+            document.getElementById("initSpawn").addEventListener("change", function(e) {
+                saveBoolToStorage("initSpawn", e.target.checked);
+            });
+            document.getElementById("shinyFilterCheck").addEventListener("change", function(e) {
+                saveBoolToStorage("shinyFilterCheck", e.target.checked);
+            });
+            document.getElementById("outbreakAlphaFilter").addEventListener("change", function(e) {
+                saveBoolToStorage("outbreakAlphaFilter", e.target.value);
+            });
+            document.getElementById("massOutbreakRolls").addEventListener("change", function(e) {
+                saveIntToStorage("massOutbreakRolls", e.target.value);
+            });
+            document.getElementById("passiveMoveLimit").addEventListener("change", function(e) {
+                saveIntToStorage("passiveMoveLimit", e.target.value);
+            });
+            document.getElementById("passiveFindFirst").addEventListener("change", function(e) {
+                saveBoolToStorage("passiveFindFirst", e.target.checked);
+            });
+        }
         var sidebar = L.control.sidebar('sidebar').addTo(map);
         let iURL;
         let popupText;
@@ -597,6 +666,8 @@
         markerObjs[{{ marker.groupID }}] = markerObj;
         possibleMarkerObjs[{{ marker.groupID }}] = markerObj;
         {% endfor %}
+        loadPreferences();
+        savePreferences();
     </script>
 </body>
 </html>
