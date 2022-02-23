@@ -196,9 +196,9 @@
         let tracking = false;
         let player_marker;
         let positionUpdater;
-        let customMarkers = JSON.parse("{{custom_markers}}".replaceAll("&#34;",'"'))
+        let customMarkers = JSON.parse("{{custom_markers}}".replace(/&#34;/g,'"'))
         let customMarkerNames = Object.keys(customMarkers);
-        let slots = JSON.parse("{{slots}}".replaceAll("&#34;",'"').replaceAll("&#39;",'"'))
+        let slots = JSON.parse("{{slots}}".replace(/&#34;/g,'"').replace(/&#39;/g,'"'))
         let slotKeys = Object.keys(slots);
         let allSpecies = new Set();
 

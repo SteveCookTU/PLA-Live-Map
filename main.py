@@ -9,6 +9,8 @@ import nxreader
 from pa8 import Pa8
 from xoroshiro import XOROSHIRO
 
+from pyfladesk import init_gui
+
 from pla_live_map_lib import calc_from_seed, generate_from_seed, find_slots, \
     slot_to_pokemon, next_filtered, generate_passive_search_paths
 
@@ -619,4 +621,4 @@ def check_near():
 
 
 if __name__ == '__main__':
-    app.run(host="localhost", port=8080, debug=True)
+    init_gui(app, port=8080, window_title="PLA Live Map")
