@@ -381,17 +381,18 @@ def read_mass_outbreak():
                                                                 request.json[
                                                                     'filter'])]
     elif request.json['passivePath']:
-        full_info = generate_passive_search_paths(group_seed,
+        info, paths_list = generate_passive_search_paths(group_seed,
                               request.json['rolls'],
                               request.json['spawns'],
                               request.json['passiveMoveLimit'],
-                              request.json['filter'],
+                              request.json['filter']['shinyFilterCheck'],
+                              request.json['filter']['outbreakAlphaFilter'],
                               not request.json['passiveFindFirst'])
         display = ["",f"Group Seed: {group_seed:X}<br>"]
-        if len(full_info["info"]) == 0:
+        if len(info) == 0:
             display[1] += "<b>No paths found</b>"
-        for seed, info in full_info["info"].items():
-            paths = full_info["paths"][seed]
+        for seed, info in info.items():
+            paths = paths_list[seed]
             display[1] += "<b>Paths:<br>"
             for effective_path in paths:
                 display[1] += \

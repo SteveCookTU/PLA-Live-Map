@@ -170,7 +170,6 @@ fn generate_mass_outbreak_passive_path(group_seed: u64, rolls: u8, steps: Vec<i3
             passes_filters |= !filtered;
             if !filtered {
                 let effective_path = [&steps[..step_i], &[0_i32.max(pokemon - 3)][..]].concat();
-                //println!("{}", effective_path.iter().map(|i| i.to_string()).collect::<Vec<String>>().join("|"));
                 if filtered_results_info.contains_key(&fixed_seed) && !filtered_results_paths.get(&fixed_seed).unwrap().contains(&effective_path) {
                     filtered_results_paths.entry(fixed_seed).or_insert(vec![]).push(effective_path);
                 } else {
