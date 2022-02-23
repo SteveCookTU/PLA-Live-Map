@@ -133,3 +133,7 @@ config.json
 
 # vscode
 .vscode/
+
+# Intellij Idea
+.idea
+/pla_live_map_lib.pyd
