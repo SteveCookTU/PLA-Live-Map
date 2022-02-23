@@ -23,8 +23,8 @@ jobs:
         cargo build --release
     - uses: actions/upload-artifact@v2
       with:
-        name: swsh-event-dumper-${{ matrix.os }}
+        name: pla_live_map_lib-${{ matrix.os }}
         path: |
-          pla_live_map_lib/target/release/swsh_event_dumper.*
-          pla_live_map_lib/target/release/swsh_event_dumper
+          pla_live_map_lib/target/release/pla_live_map_lib.*
+          pla_live_map_lib/target/release/pla_live_map_lib
           !pla_live_map_lib/target/release/*.d
